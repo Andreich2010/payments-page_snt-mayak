@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Платежная квитанция</title>
+  <!-- Подключаем библиотеки: kjua для QR-кодов, ExcelJS и FileSaver для экспорта в Excel -->
+  <script src="https://cdn.jsdelivr.net/npm/kjua@0.1.1/dist/kjua.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <style>
+    /* Основные стили страницы */
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f7fa;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 5px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #0072ce; /* СберБанк синий */
+      margin-bottom: 20px;
+    }
+    form {
+      margin-bottom: 20px;
+    }
+    form label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    form input, form select {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    form input[type="button"] {
+      width: auto;
+      background: #0072ce;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      padding: 10px 20px;
+      border-radius: 4px;
+      font-size: 16px;
+      margin-right: 10px;
+    }
+    form input[type="button"]:hover {
+      background: #005bb5;
+    }
+    #receipt {
+      border: 1px solid #0072ce;
+      padding: 15px;
+      border-radius: 5px;
+      background: #e7f0fb;
+      margin-bottom: 20px;
+    }
+    #receipt h2 {
+      margin-top: 0;
+      color: #0072ce;
+    }
+    #qrcode {
+      text-align: center;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>Платежная квитанция</h1>
+  <form id="paymentForm">
+    <label for="plotNumber">Номер участка (целое число (1,54,102)):</label>
+    <input type="number" id="plotNumber" name="plotNumber" required>
+
+    <label for="payer">Плательщик (Ф.И.О - например Иванов И.И.)):</label>
+    <input type="text" id="payer" name="payer" required>
+
+    <label for="amount">Сумма платежа (например, 1630):</label>
+    <input type="number" id="amount" name="amount" required>
+
+    <label for="period">Период (например, 24-25 (можно оставить пустым)):</label>
+    <input type="text" id="period" name="period">
+
+    <label for="contributionType">Тип взносов:</label>
+    <select id="contributionType" name="contributionType" required>
+      <option value="Членские">Членские</option>
+      <option value="Целевые">Целевые</option>
+      <option value="Долг">Долг</option>
+    </select>
+
+    <input type="button" value="Сгенерировать квитанцию" onclick="generateReceipt()">
+    <input type="button" value="Сохранить в Excel" onclick="generateExcel()">
+  </form>
+
+  <div id="receipt">
+    <h2>Квитанция</h2>
+    <p>Платежи //уч. <span id="plotDisplay"></span>//</p>
+    <p>Сумма платежа <span id="amountDisplay"></span> руб. 00 коп.</p>
+    <p>Плательщик (Ф.И.О): <span id="payerDisplay"></span></p>
+  </div>
+
+  <div id="qrcode"></div>
+</div>
+
+<script>
+  // Функция формирования строки Purpose.
+  // Если поле "Период" заполнено, оно добавляется к любому типу взносов.
+  // Для "Целевые", если период не заполнен, используется фиксированное значение "25-26".
+  function getPurpose(plotNumber, contributionType, period) {
+    var contributionStr = contributionType;
+    if (period) {
+      contributionStr += " " + period;
+    } else if (contributionType === "Целевые") {
+      contributionStr += " 25-26";
+    }
+    return "Платежи //уч. " + plotNumber + "//; " + contributionStr;
+  }
+
+  // Функция генерации QR-кода и отображения квитанции на странице
+  function generateReceipt() {
+    var plotNumber = document.getElementById("plotNumber").value;
+    var payer = document.getElementById("payer").value;
+    var amount = parseInt(document.getElementById("amount").value, 10);
+    var period = document.getElementById("period").value.trim();
+    var contributionType = document.getElementById("contributionType").value;
+
+    var purpose = getPurpose(plotNumber, contributionType, period);
+
+    // Обновляем поля квитанции на странице
+    document.getElementById("plotDisplay").innerText = plotNumber;
+    document.getElementById("payerDisplay").innerText = payer;
+    document.getElementById("amountDisplay").innerText = amount;
+
+    // Формируем строку для QR-кода. Сумма передается в копейках.
+    var qrText = "ST00012" +
+            "|Name=СНТ МАЯК" +
+            "|PersonalAcc=40703810440000003663" +
+            "|BankName=ПАО Сбербанк" +
+            "|BIC=044525225" +
+            "|CorrespAcc=30101810400000000225" +
+            "|Sum=" + (amount * 100) +
+            "|Purpose=" + purpose +
+            "|PayeeINN=5009009825" +
+            "|KPP=500901001" +
+            "|lastName=" + payer +
+            "|persAcc=" + plotNumber;
+
+    console.log("QR text:", qrText);
+
+    // Очищаем предыдущий QR-код
+    var qrcodeDiv = document.getElementById("qrcode");
+    qrcodeDiv.innerHTML = "<p>Оплатить QR‑кодом через ваш Банк</p>";
+
+    // Генерируем QR-код с помощью kjua с режимом canvas
+    var qrElement = kjua({
+      text: qrText,
+      render: 'canvas',
+      size: 256,
+      fill: '#000000',
+      back: '#ffffff',
+      ecLevel: 'L'
+    });
+
+    if (qrElement) {
+      qrcodeDiv.appendChild(qrElement);
+    } else {
+      alert("Не удалось сгенерировать QR-код.");
+    }
+  }
+
+  // Функция задержки (Promise)
+  function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // Функция экспорта в Excel с обновлением шаблона
+  async function generateExcel() {
+    var plotNumber = document.getElementById("plotNumber").value;
+    var payer = document.getElementById("payer").value;
+    var amount = parseInt(document.getElementById("amount").value, 10);
+    var period = document.getElementById("period").value.trim();
+    var contributionType = document.getElementById("contributionType").value;
+
+    var purpose = getPurpose(plotNumber, contributionType, period);
+
+    // Ждем, чтобы QR-код успел отрисоваться
+    await delay(1000);
+
+    var qrContainer = document.getElementById("qrcode");
+    var qrElement = qrContainer.querySelector("canvas");
+    if (!qrElement) {
+      alert("Сначала сгенерируйте квитанцию с QR-кодом.");
+      return;
+    }
+
+    var qrDataUrl = qrElement.toDataURL("image/png");
+    if (!qrDataUrl || !qrDataUrl.startsWith("data:image/png")) {
+      alert("Не удалось получить изображение QR-кода.");
+      return;
+    }
+
+    // Загружаем шаблон Excel (файл template.xlsx должен быть доступен)
+    const response = await fetch("template.xlsx");
+    const arrayBuffer = await response.arrayBuffer();
+
+    var workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(arrayBuffer);
+
+    var worksheet = workbook.worksheets[0];
+
+    // Обновляем ячейку C9 с сохранением объединения
+    worksheet.unMergeCells('C9:D9');
+    worksheet.getCell('C9').value = purpose;
+    worksheet.mergeCells('C9:D9');
+
+    // Остальные ячейки
+    worksheet.getCell('D11').value = "Сумма платежа:   " + amount + " руб. 00 коп.";
+    worksheet.getCell('D12').value = payer;
+
+    worksheet.unMergeCells('C25:C26');
+    worksheet.getCell('C25').value = purpose;
+    worksheet.mergeCells('C25:D25');
+    worksheet.getCell('D27').value = "Сумма платежа:   " + amount + " руб. 00 коп.";
+    worksheet.getCell('D28').value = payer;
+
+    // Добавляем QR-код как изображение в Excel
+    var imageId = workbook.addImage({
+      base64: qrDataUrl,
+      extension: 'png'
+    });
+    worksheet.addImage(imageId, {
+      tl: { col: 1.5, row: 2.5 },
+      ext: { width: 185, height: 185 }
+    });
+
+    // Генерируем Excel-файл и сохраняем его
+    const buffer = await workbook.xlsx.writeBuffer();
+    var blob = new Blob([buffer], { type: "application/octet-stream" });
+    saveAs(blob, "Квитанция.xlsx");
+  }
+</script>
+</body>
+</html>
