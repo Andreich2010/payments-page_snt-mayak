@@ -8,7 +8,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <style>
-    /* Основные стили страницы */
+    /* Банковский стиль */
     body {
       font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
       background-color: #f5f7fa;
@@ -74,6 +74,12 @@
       text-align: center;
       margin-top: 20px;
     }
+    #qrcode p {
+      font-size: 16px;
+      font-weight: bold;
+      color: #0072ce;
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
@@ -83,7 +89,7 @@
     <label for="plotNumber">Номер участка (целое число (1,54,102)):</label>
     <input type="number" id="plotNumber" name="plotNumber" required>
 
-    <label for="payer">Плательщик (Ф.И.О - например Иванов И.И.)):</label>
+    <label for="payer">Плательщик (Ф.И.О - например Иванов И.И.) :</label>
     <input type="text" id="payer" name="payer" required>
 
     <label for="amount">Сумма платежа (например, 1630):</label>
@@ -101,6 +107,7 @@
 
     <input type="button" value="Сгенерировать квитанцию" onclick="generateReceipt()">
     <input type="button" value="Сохранить в Excel" onclick="generateExcel()">
+    <input type="button" value="Вернуться на сайт" onclick="window.location.href='https://snt-mayak.sntclub.ru/'">
   </form>
 
   <div id="receipt">
@@ -158,7 +165,7 @@
 
     console.log("QR text:", qrText);
 
-    // Очищаем предыдущий QR-код
+    // Очищаем предыдущий QR-код и добавляем заголовок
     var qrcodeDiv = document.getElementById("qrcode");
     qrcodeDiv.innerHTML = "<p>Оплатить QR‑кодом через ваш Банк</p>";
 
