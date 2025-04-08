@@ -2,13 +2,14 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Платежная квитанция</title>
-  <!-- Подключаем библиотеки: kjua для QR-кодов, ExcelJS и FileSaver для экспорта в Excel -->
+  <!-- Подключаем библиотеки: kjua (для QR-кодов), ExcelJS и FileSaver для экспорта в Excel -->
   <script src="https://cdn.jsdelivr.net/npm/kjua@0.1.1/dist/kjua.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <style>
-    /* Банковский стиль */
+    /* Основной стиль страницы */
     body {
       font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
       background-color: #f5f7fa;
@@ -17,16 +18,18 @@
       color: #333;
     }
     .container {
+      width: 100%;
       max-width: 800px;
       margin: 0 auto;
       background: #fff;
-      border-radius: 5px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
       padding: 20px;
     }
     h1 {
       text-align: center;
       color: #0072ce; /* СберБанк синий */
+      font-size: 1.8em;
       margin-bottom: 20px;
     }
     form {
@@ -37,16 +40,17 @@
       font-weight: bold;
       margin-bottom: 5px;
     }
-    form input, form select {
+    form input,
+    form select {
       width: 100%;
-      padding: 8px;
+      padding: 10px 12px;
       margin-bottom: 15px;
       border: 1px solid #ccc;
       border-radius: 4px;
-      font-size: 14px;
+      font-size: 16px;
+      box-sizing: border-box;
     }
     form input[type="button"] {
-      width: auto;
       background: #0072ce;
       color: #fff;
       border: none;
@@ -54,10 +58,17 @@
       padding: 10px 20px;
       border-radius: 4px;
       font-size: 16px;
-      margin-right: 10px;
+      transition: background 0.3s;
+      margin-bottom: 10px;
     }
     form input[type="button"]:hover {
       background: #005bb5;
+    }
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 15px;
     }
     #receipt {
       border: 1px solid #0072ce;
@@ -69,6 +80,11 @@
     #receipt h2 {
       margin-top: 0;
       color: #0072ce;
+      font-size: 1.5em;
+    }
+    #receipt p {
+      margin: 5px 0;
+      font-size: 16px;
     }
     #qrcode {
       text-align: center;
@@ -80,22 +96,45 @@
       color: #0072ce;
       margin-bottom: 10px;
     }
+    /* Адаптивные стили */
+    @media (max-width: 600px) {
+      body {
+        padding: 10px;
+      }
+      .container {
+        padding: 15px;
+      }
+      form input,
+      form select {
+        font-size: 14px;
+      }
+      form input[type="button"] {
+        font-size: 14px;
+        padding: 8px 16px;
+      }
+      h1 {
+        font-size: 1.5em;
+      }
+      #receipt p, #qrcode p {
+        font-size: 14px;
+      }
+    }
   </style>
 </head>
 <body>
 <div class="container">
   <h1>Платежная квитанция</h1>
   <form id="paymentForm">
-    <label for="plotNumber">Номер участка (целое число (1,54,102)):</label>
+    <label for="plotNumber">Номер участка (целое число (например, 1, 54, 102)):</label>
     <input type="number" id="plotNumber" name="plotNumber" required>
 
-    <label for="payer">Плательщик (Ф.И.О - например Иванов И.И.) :</label>
+    <label for="payer">Плательщик (Ф.И.О., например, Иванов И.И.):</label>
     <input type="text" id="payer" name="payer" required>
 
     <label for="amount">Сумма платежа (например, 1630):</label>
     <input type="number" id="amount" name="amount" required>
 
-    <label for="period">Период (например, 24-25 (можно оставить пустым)):</label>
+    <label for="period">Период (например, 24-25, можно оставить пустым):</label>
     <input type="text" id="period" name="period">
 
     <label for="contributionType">Тип взносов:</label>
@@ -105,9 +144,11 @@
       <option value="Долг">Долг</option>
     </select>
 
-    <input type="button" value="Сгенерировать квитанцию" onclick="generateReceipt()">
-    <input type="button" value="Сохранить в Excel" onclick="generateExcel()">
-    <input type="button" value="Вернуться на сайт" onclick="window.location.href='https://snt-mayak.sntclub.ru/'">
+    <div class="button-group">
+      <input type="button" value="Сгенерировать квитанцию" onclick="generateReceipt()">
+      <input type="button" value="Сохранить в Excel" onclick="generateExcel()">
+      <input type="button" value="Вернуться на сайт" onclick="window.location.href='https://snt-mayak.sntclub.ru/'">
+    </div>
   </form>
 
   <div id="receipt">
@@ -122,14 +163,17 @@
 
 <script>
   // Функция формирования строки Purpose.
-  // Если поле "Период" заполнено, оно добавляется к любому типу взносов.
-  // Для "Целевые", если период не заполнен, используется фиксированное значение "25-26".
+  // Для типа "Целевые": если период заполнен, используется введённое значение (например, "Целевые 24-25"),
+  // иначе фиксированное "25-26". Для остальных типов, если период заполнен, он добавляется.
   function getPurpose(plotNumber, contributionType, period) {
-    var contributionStr = contributionType;
-    if (period) {
-      contributionStr += " " + period;
-    } else if (contributionType === "Целевые") {
-      contributionStr += " 25-26";
+    let contributionStr;
+    if (contributionType === "Целевые") {
+      contributionStr = contributionType + " " + (period ? period : "25-26");
+    } else {
+      contributionStr = contributionType;
+      if (period) {
+        contributionStr += " " + period;
+      }
     }
     return "Платежи //уч. " + plotNumber + "//; " + contributionStr;
   }
@@ -169,7 +213,7 @@
     var qrcodeDiv = document.getElementById("qrcode");
     qrcodeDiv.innerHTML = "<p>Оплатить QR‑кодом через ваш Банк</p>";
 
-    // Генерируем QR-код с помощью kjua с режимом canvas
+    // Генерируем QR-код с помощью kjua (render: 'canvas')
     var qrElement = kjua({
       text: qrText,
       render: 'canvas',
