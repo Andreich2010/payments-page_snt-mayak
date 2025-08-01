@@ -141,7 +141,7 @@
     <label for="amount">Сумма платежа (например, 1630):</label>
     <input type="number" id="amount" name="amount" required>
 
-    <label for="period">Период (например, 24-25, можно оставить пустым):</label>
+    <label for="period">Период (например, 25-26, можно оставить пустым):</label>
     <input type="text" id="period" name="period">
 
     <label for="contributionType">Тип взносов:</label>
@@ -182,7 +182,7 @@
         contributionStr += " " + period;
       }
     }
-    return "Платежи //уч. " + plotNumber + "//; " + contributionStr;
+    return "Платежи уч. //" + plotNumber + "// - " + contributionStr;
   }
 
   // Функция генерации QR-кода и отображения квитанции на странице
@@ -203,10 +203,10 @@
     // Формируем строку для QR-кода. Сумма передается в копейках.
     var qrText = "ST00012" +
             "|Name=СНТ МАЯК" +
-            "|PersonalAcc=40703810440000003663" +
-            "|BankName=ПАО Сбербанк" +
+            "|PersonalAcc=40703810070010004316" +
+            "|BankName=МОСКОВСКИЙ ФИЛИАЛ АО КБ \"МОДУЛЬБАНК\"\n" +
             "|BIC=044525225" +
-            "|CorrespAcc=30101810400000000225" +
+            "|CorrespAcc=30101810645250000092" +
             "|Sum=" + (amount * 100) +
             "|Purpose=" + purpose +
             "|PayeeINN=5009009825" +
