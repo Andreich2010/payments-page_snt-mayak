@@ -133,7 +133,7 @@
   <h5>После ввода данных нажмите "Сформировать квитанцию", после этого сохраните Excel или оплатите QR-кодом</h5>
   <form id="paymentForm">
     <label for="plotNumber">Номер участка (целое число (например, 1, 54, 102)):</label>
-    <input type="number" id="plotNumber" name="plotNumber" required>
+    <input type="text" id="plotNumber" name="plotNumber" required pattern="[0-9а-яА-ЯёЁ\s\-]+" title="Введите номер участка, например: 79, 79а, 54-б">
 
     <label for="payer">Плательщик (Ф.И.О., например, Иванов И.И.):</label>
     <input type="text" id="payer" name="payer" required>
